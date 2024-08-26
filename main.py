@@ -4,17 +4,20 @@ from psycopg2 import sql
 import logging
 import os
 import tempfile
+from dotenv import load_dotenv
 
 
-# Configurações de conexão com o banco de dados
+# Carregar variáveis do arquivo .env
+load_dotenv()
+
+# Configurações de conexão com o banco de dados a partir do .env
 DB_CONFIG = {
-    'host': 'localhost',
-    'port': '5432',
-    'user': 'postgres',
-    'password': 'postgres',
-    'dbname': 'stage'
+    'host': os.getenv('DB_HOST'),
+    'port': os.getenv('DB_PORT'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'dbname': os.getenv('DB_NAME')
 }
-
 # Configuração de detalhamento de logs
 DEBUG_MODE = True  # Altere para False para logs menos detalhados
 
