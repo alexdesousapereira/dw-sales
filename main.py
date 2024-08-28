@@ -51,7 +51,7 @@ def send_telegram_message(message):
         payload = {
             'chat_id': chat_id,
             'text': message,
-            'parse_mode': 'Markdown'
+            'parse_mode': None  # Remova o 'Markdown' para evitar problemas de parsing
         }
         response = requests.post(url, data=payload)
         if response.status_code == 200:
@@ -133,26 +133,6 @@ class DataFrameTransformer:
         self.df = df
         self.mapper = MapperSalesData()
 
-    def rename_columns(self):
-        """Renomeia as colunas do DataFrame de acordo com o mapeamento."""
-        column_mappings = self.mapper._MAPEAMENTO_TO_TABELA
-        unrenamed_columns = 0
-
-        def try_rename_column(col):
-            if col in column_mappings:
-                return column_mappings[col]
-            else:
-                debug(f'Coluna {col} não encontrada no mapeamento. Mantendo o nome original.', 'WARNING')
-                nonlocal unrenamed_columns
-                unrenamed_columns += 1
-                return col
-
-        self.df.columns = [try_rename_column(col) for col in self.df.columns]
-
-        if unrenamed_columns > 0:
-            debug(f'{unrenamed_columns} coluna(s) não foram renomeadas.', 'WARNING')
-
-        return self.df
 
     def remove_unused_columns(self, columns_to_keep=None):
         """
@@ -199,7 +179,6 @@ class DataFrameTransformer:
 
     def transform(self):
         """Executa todas as transformações no DataFrame em sequência."""
-        self.rename_columns()
         self.remove_unused_columns()
         self.remove_blank_rows()
         self.remove_duplicates()
@@ -233,14 +212,14 @@ class DataFrameValidator:
         
         debug(f'O DataFrame tem o número correto de colunas ({actual_column_count}) e os nomes estão corretos.', 'INFO')
         return True
-
+    
     def valida_codigos(self):
-        """Verifica se os códigos nas colunas especificadas têm exatamente 4 dígitos."""
+        """Verifica se os códigos nas colunas especificadas têm exatamente 4 caracteres."""
         invalid_codes = 0
         for col in self.mapper._COLUNAS_COD:
             def check_codigo(value):
                 nonlocal invalid_codes
-                if isinstance(value, int) or (isinstance(value, str) and value.isdigit()):
+                if isinstance(value, (int, str)):
                     value_str = str(value)
                     if len(value_str) == 4:
                         return value_str
@@ -323,23 +302,29 @@ class DataFrameValidator:
         integers_df, ignored_integers = self.validate_integers()
         return self.df, ignored_dates, ignored_decimals, ignored_integers
 def insert_data(row, conn):
-    """Insere uma única linha de dados no banco de dados."""
+    """Insere uma única linha de dados no banco de dados usando o mapeamento do MapperSalesData."""
     try:
         cur = conn.cursor()
+
+        # Obtenha o mapeamento das colunas
+        mapper = MapperSalesData()
+        column_mapping = mapper._MAPEAMENTO_TO_TABELA
+
+        # Crie uma lista de colunas e valores com base no mapeamento
+        columns = list(column_mapping.values())
+        values = [row[col] for col in column_mapping.keys()]
+
+        # Construa a consulta SQL dinamicamente com base nas colunas mapeadas
         insert_query = sql.SQL("""
-            INSERT INTO vendas.stage_sales_data (
-                data_venda, numero_nota, codigo_produto, descricao_produto,
-                codigo_cliente, descricao_cliente, valor_unitario_produto,
-                quantidade_vendida_produto, valor_total, custo_da_venda,
-                valor_tabela_de_preco_do_produto
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """)
-        cur.execute(insert_query, (
-            row['data_venda'], row['numero_nota'], row['codigo_produto'],
-            row['descricao_produto'], row['codigo_cliente'], row['descricao_cliente'],
-            row['valor_unitario_produto'], row['quantidade_vendida_produto'],
-            row['valor_total'], row['custo_da_venda'], row['valor_tabela_de_preco_do_produto']
-        ))
+            INSERT INTO vendas.stage_sales_data ({})
+            VALUES ({})
+        """).format(
+            sql.SQL(', ').join(map(sql.Identifier, columns)),
+            sql.SQL(', ').join(sql.Placeholder() * len(columns))
+        )
+
+        # Execute a consulta com os valores mapeados
+        cur.execute(insert_query, values)
         conn.commit()
         cur.close()
     except Exception as e:
@@ -386,45 +371,62 @@ def save_error_rows_to_csv(error_rows):
 
 def main():
     conn = None
-    try:
-        send_telegram_message("📊 *Iniciando o processo de carregamento de dados...*")
-        conn = connect_to_db()
+try:
+    send_telegram_message("📊 Iniciando o processo de carregamento de dados...")
+    conn = connect_to_db()
 
-        df = pd.read_excel('sales_data_with_dates.xlsx')
-        original_count = len(df)
+    df = pd.read_excel('sales_data_with_dates.xlsx')
+    original_count = len(df)
 
-        transformer = DataFrameTransformer(df)
-        df = transformer.transform()
-        debug("Transformações de dados concluídas.", 'INFO', conn)
+    debug("✅ Dados Carregados com sucesso", 'INFO', conn)
 
-        validator = DataFrameValidator(df)
-        df, ignored_dates, ignored_decimals, ignored_integers = validator.validate_all()
-        debug("Validações de dados concluídas.", 'INFO', conn)
+    debug("🌀 Iniciando o processo de transformação de dados...", 'INFO', conn)
 
-        truncate_table(conn)
+    transformer = DataFrameTransformer(df)
+    df = transformer.transform()
 
-        error_rows = process_data(df, conn)
+    debug("✅ Transformações de dados concluídas.", 'INFO', conn)
 
-        after_insert_count = get_row_count(conn)
+    debug("🔍 Iniciando o processo de validação dos dados...", 'INFO', conn)
 
-        ignored_count = original_count - (after_insert_count + ignored_dates + ignored_decimals + ignored_integers)
+    validator = DataFrameValidator(df)
+    df, ignored_dates, ignored_decimals, ignored_integers = validator.validate_all()
 
-        insert_monitoring_data(conn, original_count, after_insert_count, ignored_count)
-        error_rows_df = pd.DataFrame(error_rows)
-        save_error_rows_to_csv(error_rows_df)
+    debug("✅ Validações de dados concluídas.", 'INFO', conn)
 
-        send_telegram_message("✅ *Dados inseridos no banco com sucesso.*")
-        debug('Script executado com sucesso.', 'INFO', conn)
+    debug("📥 Iniciando o processo de inserção dos dados...", 'INFO', conn)
+    truncate_table(conn)
 
-    except Exception as e:
-        if conn and not conn.closed:
-            debug(f'Ocorreu um erro na execução do script: {e}', 'ERROR', conn)
-        else:
-            print(f'Ocorreu um erro na execução do script: {e}')
-        send_telegram_message(f"❌ *Ocorreu um erro na execução do script:* {e}")
-    finally:
-        if conn and not conn.closed:
-            conn.close()
+    error_rows = process_data(df, conn)
+
+    after_insert_count = get_row_count(conn)
+
+    ignored_count = original_count - after_insert_count
+
+    insert_monitoring_data(conn, original_count, after_insert_count, ignored_count)
+    
+    # Salvando as linhas com erro em CSV
+    error_rows_df = pd.DataFrame(error_rows)
+    save_error_rows_to_csv(error_rows_df)
+
+    # Verificação de erros
+    if len(error_rows) > 0:
+        send_telegram_message(f"⚠️ Dados inseridos no banco com sucesso, mas {len(error_rows)} linhas apresentaram erros.")
+    else:
+        send_telegram_message("✅ Dados inseridos no banco com sucesso.")
+
+    debug('Script executado com sucesso.', 'INFO', conn)
+
+except Exception as e:
+    if conn and not conn.closed:
+        debug(f'Ocorreu um erro na execução do script: {e}', 'ERROR', conn)
+    else:
+        print(f'Ocorreu um erro na execução do script: {e}')
+    send_telegram_message(f"❌ *Ocorreu um erro na execução do script:* {e}")
+finally:
+    if conn and not conn.closed:
+        conn.close()
+
 
 if __name__ == '__main__':
     main()
