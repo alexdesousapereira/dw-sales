@@ -1,8 +1,8 @@
 """Create vendas schema and tables
 
-Revision ID: ece6eaddec5e
+Revision ID: 89d53579f472
 Revises: 
-Create Date: 2024-08-28 15:32:33.729127
+Create Date: 2024-08-29 18:58:56.090533
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'ece6eaddec5e'
+revision: str = '89d53579f472'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -30,10 +30,11 @@ def upgrade() -> None:
     )
     op.create_table('monitoring_stage_data',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('data_inicio', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.Column('arquivo_original_registros', sa.Integer(), nullable=True),
     sa.Column('registros_apos_limpeza', sa.Integer(), nullable=True),
     sa.Column('registros_ignorados', sa.Integer(), nullable=True),
-    sa.Column('data_processamento', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+    sa.Column('data_fim', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     schema='vendas'
     )
