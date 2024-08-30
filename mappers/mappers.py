@@ -34,7 +34,7 @@ class MapperSalesData:
 
     _COLUNAS_INTEIRO = [
         "numero_nota",
-        "valor_tabela_de_preco_do_produto"
+        "quantidade_vendida_produto"
     ]
 
     _COLUNAS_TEXTO = [
