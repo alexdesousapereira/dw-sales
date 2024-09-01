@@ -6,7 +6,7 @@ O objetivo deste projeto é fazer um script Python que valida o formato e a estr
 
 ![Projeto](media/Projeto.svg)
 
-*Stack Utilizadas*
+*Stack Utilizadas:*
 
 [Alembic 1.13.2](https://alembic.sqlalchemy.org/en/latest/index.html)
 
@@ -23,6 +23,12 @@ O objetivo deste projeto é fazer um script Python que valida o formato e a estr
 Atraves deste projeto você terá acesso ao holds bot, um bot responsável por monitorirar cargas dentro banco de dados fornecendo principais informações de se os dados foram inseridos corretamente dentro banco de dados.  
 
 ![Telegram Bot](media/image.png)
+
+
+## Dashboard de Vendas
+
+Este Dashboard tem como finalidade trazer uma análises detalhada das vendas da Dataholds. Click na imagem para acessar este bi.
+[![Dashboard de Vendas](media/Dashboard.png)](https://app.powerbi.com/view?r=eyJrIjoiYWEwZjMyMzYtZDk2ZS00ZmU3LThlYTYtODlhMzhiMWMyYmUzIiwidCI6IjFhODE4ZjcyLWM3M2YtNDAyNi1hZWJhLWIzYTRmODAzMmE4MCJ9)
 
 
 ## Estrutura do Projeto
