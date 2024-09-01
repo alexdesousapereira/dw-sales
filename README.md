@@ -20,14 +20,14 @@ O objetivo deste projeto é fazer um script Python que valida o formato e a estr
 
 ## Holds Bot
 
-Atraves deste projeto você terá acesso ao holds bot, um bot responsável por monitorirar cargas dentro banco de dados fornecendo principais informações de se os dados foram inseridos corretamente dentro banco de dados.  
+Através deste projeto, você terá acesso ao Holds Bot, um bot responsável por monitorar as cargas dentro do banco de dados, fornecendo informações essenciais sobre a inserção correta dos dados no banco.
 
 ![Telegram Bot](media/image.png)
 
 
 ## Dashboard de Vendas
 
-Este Dashboard tem como finalidade trazer uma análises detalhada das vendas da Dataholds. Click na imagem para acessar este bi.
+Este dashboard tem como finalidade fornecer uma análise detalhada das vendas da Dataholds. Clique na imagem para acessar o BI.
 [![Dashboard de Vendas](media/Dashboard.png)](https://app.powerbi.com/view?r=eyJrIjoiYWEwZjMyMzYtZDk2ZS00ZmU3LThlYTYtODlhMzhiMWMyYmUzIiwidCI6IjFhODE4ZjcyLWM3M2YtNDAyNi1hZWJhLWIzYTRmODAzMmE4MCJ9)
 
 
